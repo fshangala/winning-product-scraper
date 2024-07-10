@@ -1,12 +1,15 @@
 import base64
 import requests
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CopiwinSDK:
   def __init__(self,client_id:str,client_secret:str):
     self.client_id=client_id
     self.client_secret=client_secret
-    self.baseUrl="http://localhost:8000"
+    self.baseUrl="https://api.copiwin.com"
     self.access_token=self.getAccessToken()
   
   def getAccessToken(self):
@@ -22,10 +25,14 @@ class CopiwinSDK:
         "grant_type":"client_credentials"
       }
     )
-    data = response.json()
-    if "access_token" in data:
-      return data["access_token"]
+    if response.status_code == 200:
+      data = response.json()
+      if "access_token" in data:
+        return data["access_token"]
+      else:
+        return None
     else:
+      print(response.reason)
       return None
   
   def getStores(self):

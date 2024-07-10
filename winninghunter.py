@@ -1,7 +1,12 @@
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import ElementNotInteractableException
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
+import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 class element_exists(object):
   def __init__(self,css_selector:str):
@@ -14,13 +19,35 @@ class element_exists(object):
     else:
       return False
     
-def login(driver:Chrome):
+def login(driver:Chrome,attempt=1):
   email = driver.find_element(By.NAME, "Email")
   email.send_keys("malaky31@hotmail.fr")
   password = driver.find_element(By.NAME, "Password")
   password.send_keys("12345678")
   button = driver.find_element(By.CSS_SELECTOR, 'button.login')
-  button.click()
+  try:
+    button.click()
+  except ElementNotInteractableException as e:
+    logger.error(e)
+    print(f"Attempt: {attempt}; ")
+    print(e)
+    time.sleep(2)
+    attempt += 1
+    login(driver=driver,attempt=attempt)
+
+def enterSiteUrl(driver:Chrome,url:str,attempt=1):
+  email = driver.find_element(By.ID, "Store-URL")
+  email.send_keys(url)
+  startButton=driver.find_element(By.CSS_SELECTOR,"button[type='submit']")
+  try:
+    startButton.click()
+  except ElementNotInteractableException as e:
+    logger.error(e)
+    print(f"Attempt: {attempt}; ")
+    print(e)
+    time.sleep(2)
+    attempt += 1
+    enterSiteUrl(driver=driver,url=url,attempt=attempt)
 
 def getTrackedSites(driver:Chrome):
   driver.get("https://app.winninghunter.com/sales-tracker")
@@ -30,6 +57,7 @@ def getTrackedSites(driver:Chrome):
     try:
       WebDriverWait(driver,10).until(expected_conditions.title_contains("Dashboard"))
     except Exception as e:
+      logger.error(e)
       print(e)
     else:
       data = getTrackedSites(driver=driver)
@@ -37,6 +65,7 @@ def getTrackedSites(driver:Chrome):
     try:
       WebDriverWait(driver,10).until(element_exists("#store-table"))
     except Exception as e:
+      logger.error(e)
       print(e)
     data = driver.execute_script("""
     var table = document.querySelector("#store-table");
@@ -64,16 +93,15 @@ def addTrackedSite(driver:Chrome,url:str):
     try:
       WebDriverWait(driver,10).until(expected_conditions.title_contains("Dashboard"))
     except Exception as e:
+      logger.error(e)
       print(e)
-    data = addTrackedSites(driver=driver,url=url)
+    data = addTrackedSite(driver=driver,url=url)
   elif "Sales" in driver.title:
-    email = driver.find_element(By.ID, "Store-URL")
-    email.send_keys(url)
-    startButton=driver.find_element(By.CSS_SELECTOR,"button[type='submit']")
-    startButton.click()
+    enterSiteUrl(driver=driver,url=url)
     try:
       WebDriverWait(driver,10).until(expected_conditions.title_contains("Details"))
     except Exception as e:
+      logger.error(e)
       print(e)
     data = getTrackedSites(driver=driver)
   
