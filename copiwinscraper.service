@@ -1,0 +1,12 @@
+[Unit]
+Description=Copiwin Scraper
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/data/winning-product-scraper/venv/bin/python3 /data/winning-product-scraper/main.py
+User=root
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

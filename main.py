@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions
 from copiwinsdk import CopiwinSDK
 from dotenv import load_dotenv
 import os
+import winninghunter
 
 load_dotenv()
 
@@ -18,5 +19,25 @@ options.add_argument('--disable-gpu')
 driver = webdriver.Chrome(options=options)
 copiwinSDK = CopiwinSDK(client_id=os.environ.get("COPIWIN_CLIENT_ID"),client_secret=os.environ.get("COPIWIN_CLIENT_SECRET"))
 
+def getTrackedSiteData(sites:list,store:dict)->dict:
+  name = store["hostname"].split(".")[1] if store["hostname"].split(".")[0] == "www" else store["hostname"].split(".")[0]
+  filteredSites=filter(lambda x: name in x["store"],sites)
+  filteredSites=list(filteredSites)
+  if len(filteredSites) == 1:
+    return filteredSites[0]
+  else:
+    return None
+
 while True:
-  pass
+  stores=copiwinSDK.getStores()
+  if stores:
+    sites=winninghunter.getTrackedSites(driver=driver)
+    if sites:
+      for store in stores:
+        data=getTrackedSiteData(sites=sites,store=store)
+        if not data:
+          sites=winninghunter.addTrackedSite(driver=driver,url=store["url"])
+          data=getTrackedSiteData(sites=sites,store=store)
+        if data:
+          response=copiwinSDK.addStoreData(store_id=store["id"],data=data)
+          print(response)         
